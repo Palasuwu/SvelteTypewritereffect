@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ScrollReveal from '$lib/components/ScrollReveal.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 </script>
 
 <div class="min-h-screen bg-[#013b3f]">
@@ -28,7 +29,5 @@
 	/>
 
 	<!-- Footer -->
-	<section class="flex h-screen items-center justify-center">
-		<p class="text-2xl text-[#cccccc]">fin.</p>
-	</section>
+	<Footer />
 </div>
