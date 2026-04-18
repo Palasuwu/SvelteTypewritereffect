@@ -1,15 +1,12 @@
 <script lang="ts">
+	import Hero3D from '$lib/components/Hero3D.svelte';
 	import ScrollReveal from '$lib/components/ScrollReveal.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 </script>
 
 <div class="min-h-screen bg-[#013b3f]">
-	<!-- Hero section -->
-	<section class="flex h-screen items-center justify-center">
-		<h1 class="text-5xl font-bold tracking-tight text-[#cccccc] md:text-7xl">
-			Scroll Down
-		</h1>
-	</section>
+	<!-- 3D Hero with floating GBA model -->
+	<Hero3D />
 
 	<!-- First reveal -->
 	<ScrollReveal
