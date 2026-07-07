@@ -171,17 +171,30 @@
 	 *     of scroll progress has passed (it doesn't revert to gray).
 	 */
 	.char {
-		color: #cccccc;
+		/* Fallback for browsers WITHOUT scroll-driven animations
+		   (Firefox / Safari): show the text fully lit so it's never
+		   stuck in the muted gray state. */
+		color: #938160;
+	}
 
-		animation-name: light-up;
-		animation-timeline: --reveal-timeline;
-		animation-fill-mode: both;
-		animation-duration: 1ms; /* required by spec but ignored — scroll drives timing */
-		animation-timing-function: steps(1, end);
+	/* Progressive enhancement: only run the scroll-driven reveal where
+	   the API exists AND the user hasn't asked for reduced motion. */
+	@supports (animation-timeline: view()) {
+		@media (prefers-reduced-motion: no-preference) {
+			.char {
+				color: #cccccc;
 
-		animation-range:
-			contain calc(var(--i) / var(--char-count) * 70%)
-			contain calc((var(--i) + 1) / var(--char-count) * 70%);
+				animation-name: light-up;
+				animation-timeline: --reveal-timeline;
+				animation-fill-mode: both;
+				animation-duration: 1ms; /* required by spec but ignored — scroll drives timing */
+				animation-timing-function: steps(1, end);
+
+				animation-range:
+					contain calc(var(--i) / var(--char-count) * 70%)
+					contain calc((var(--i) + 1) / var(--char-count) * 70%);
+			}
+		}
 	}
 
 	/*
