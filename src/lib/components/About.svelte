@@ -62,6 +62,8 @@
 			</div>
 
 			<div class="skills-panel" use:reveal style:--delay="120ms">
+				<!-- Placeholder pixel avatar — swap static/avatar.png for a real photo -->
+				<img src="/avatar.png" alt="Pixel-art portrait of Pala" class="avatar" width="112" height="112" loading="lazy" />
 				<h3 class="skills-heading">Toolbox</h3>
 				<ul class="skills">
 					{#each skills as skill}
@@ -128,6 +130,15 @@
 		background-color: rgba(2, 73, 78, 0.45);
 		border: 1px solid rgba(147, 129, 96, 0.18);
 		border-radius: 1rem;
+	}
+
+	.avatar {
+		width: 7rem;
+		height: 7rem;
+		border-radius: 1rem;
+		border: 1px solid rgba(147, 129, 96, 0.35);
+		image-rendering: pixelated;
+		margin-bottom: 1.5rem;
 	}
 
 	.skills-heading {

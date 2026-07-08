@@ -28,7 +28,9 @@
 	let screenshot: HTMLImageElement | null = $state(null);
 
 	function pick(project: Project) {
-		if (selected === project || ejecting) return;
+		// Compare by title, not identity — `selected` is a $state proxy, so
+		// `selected === project` is always false against the raw object
+		if (selected?.title === project.title || ejecting) return;
 		selected = project;
 		insertToken++;
 
@@ -37,7 +39,7 @@
 		if (project.image) {
 			const img = new Image();
 			img.onload = () => {
-				if (selected === project) screenshot = img;
+				if (selected?.title === project.title) screenshot = img;
 			};
 			img.src = project.image;
 		}
@@ -48,12 +50,13 @@
 		ejecting = true;
 		ejectToken++;
 		// Clear the selection once the cart has flown back to the stack
+		// (flight is 1.25s in the scene — keep this slightly longer)
 		clearTimeout(ejectTimer);
 		ejectTimer = setTimeout(() => {
 			selected = null;
 			screenshot = null;
 			ejecting = false;
-		}, 1100);
+		}, 1400);
 	}
 </script>
 
@@ -99,6 +102,8 @@
 			{/if}
 		</div>
 
+		<!-- Height always reserved so the page doesn't jump when it appears -->
+		<div class="start-slot">
 		{#if selected && !ejecting}
 			<div class="start-row">
 				<a class="start-button" href={selected.link} target="_blank" rel="noopener noreferrer">
@@ -116,6 +121,7 @@
 				</button>
 			</div>
 		{/if}
+		</div>
 	</div>
 </section>
 
@@ -175,6 +181,10 @@
 	}
 
 	/* ---- START / EJECT ---- */
+	.start-slot {
+		min-height: 5.5rem;
+	}
+
 	.start-row {
 		display: flex;
 		align-items: center;

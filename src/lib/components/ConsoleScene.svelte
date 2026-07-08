@@ -375,7 +375,7 @@
 	     toward the camera. Hidden while "its" cart is inserted. -->
 	<T.Group
 		position.x={STACK_X + jitter.x}
-		position.y={0.08 + i * CART_GAP}
+		position.y={STACK_BASE + i * CART_GAP}
 		position.z={0.1 + slides[i]}
 		rotation.y={jitter.rotY}
 		visible={project?.title !== p.title}

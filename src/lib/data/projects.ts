@@ -1,6 +1,10 @@
 /**
- * Project data for the Work section.
- * Edit this file to add / remove / reorder projects — the grid updates automatically.
+ * Project data for the Work section (the GBA cartridge stack).
+ * Edit this file to add / remove / reorder projects — the 3D stack,
+ * end labels, and in-screen title screens all update automatically.
+ *
+ * NOTE: "Neon Drift" and "Dungeon Ledger" are PLACEHOLDER projects with
+ * generated pixel-art screenshots — replace them with your real work.
  */
 
 export interface Project {
@@ -9,7 +13,7 @@ export interface Project {
 	tags: string[];
 	link: string;
 	year: string;
-	/** Optional screenshot — path under /static, e.g. '/projects/my-app.webp' (~1200×750). */
+	/** Optional screenshot — path under /static, e.g. '/projects/my-app.png' (~1200×750). */
 	image?: string;
 }
 
@@ -20,22 +24,25 @@ export const projects: Project[] = [
 			'A scroll-driven cinematic portfolio: a Draco-compressed GBA model animated through keyframes as you scroll, with CSS scroll-driven text reveals.',
 		tags: ['SvelteKit', 'Threlte', 'Three.js', 'Tailwind'],
 		link: 'https://github.com/Palasuwu',
-		year: '2026'
+		year: '2026',
+		image: '/projects/portfolio.png'
 	},
 	{
-		title: 'Project Two',
+		title: 'Neon Drift',
 		description:
-			'Replace me in src/lib/data/projects.ts — a short one-or-two sentence description of what this project does and why it matters.',
-		tags: ['TypeScript', 'Svelte'],
+			'Placeholder — a synthwave endless-runner prototype: procedural terrain, one-thumb controls, steady 60fps on modest hardware.',
+		tags: ['Canvas', 'Game Dev', 'TypeScript'],
 		link: 'https://github.com/Palasuwu',
-		year: '2025'
+		year: '2025',
+		image: '/projects/neon-drift.png'
 	},
 	{
-		title: 'Project Three',
+		title: 'Dungeon Ledger',
 		description:
-			'Replace me in src/lib/data/projects.ts — a short one-or-two sentence description of what this project does and why it matters.',
-		tags: ['Web', 'Design'],
+			'Placeholder — a cozy inventory tracker for tabletop campaigns. Local-first and offline-friendly; syncs when you are.',
+		tags: ['Svelte', 'PWA', 'IndexedDB'],
 		link: 'https://github.com/Palasuwu',
-		year: '2025'
+		year: '2025',
+		image: '/projects/dungeon-ledger.png'
 	}
 ];

@@ -33,6 +33,11 @@
 		content="Interactive experiences where motion, 3D, and performance work together."
 	/>
 	<meta property="og:type" content="website" />
+	<!-- Relative path works once deployed on your domain -->
+	<meta property="og:image" content="/og.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <div class="min-h-screen bg-abyss">
