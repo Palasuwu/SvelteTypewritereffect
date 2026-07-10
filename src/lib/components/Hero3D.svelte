@@ -55,6 +55,10 @@
 	// and fade the title out a bit later.
 	const subtitleOpacity = $derived(Math.max(0, 1 - progress * 8));
 	const titleOpacity = $derived(Math.max(0, 1 - progress * 4));
+
+	// HUD stays through most of the journey, bows out before the final zoom
+	const hudOpacity = $derived(Math.max(0, 1 - Math.max(0, progress - 0.7) * 5));
+	const power = $derived(Math.round(progress * 100));
 </script>
 
 <div id="top" class="track" bind:this={trackEl}>
@@ -88,18 +92,38 @@
 
 		<!-- Text overlay — staggers in on load, fades out as user scrolls -->
 		<div class="overlay">
-			<h1 class="title" style:opacity={titleOpacity}>
-				{#each 'GBA' as letter, i}
-					<span class="title-letter" style:--stagger="{i * 120}ms">{letter}</span>
-				{/each}
-			</h1>
-			<p class="subtitle intro-fade" style:opacity={subtitleOpacity}>Scroll to explore</p>
+			<div class="headline-block" style:opacity={titleOpacity}>
+				<p class="eyebrow intro-fade">Player 1 — Pala</p>
+				<h1 class="title">
+					{#each 'Playable web experiences.'.split(' ') as word, i}
+						<span class="title-word" style:--stagger="{i * 110}ms">{word}&nbsp;</span>
+					{/each}
+				</h1>
+				<p class="roles intro-fade">
+					Design &amp; development — motion, 3D and performance, working together.
+				</p>
+			</div>
 
 			<!-- Animated scroll cue -->
-			<div class="scroll-cue intro-fade" style:opacity={subtitleOpacity} aria-hidden="true">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="6 9 12 15 18 9" />
-				</svg>
+			<div class="cue-block" style:opacity={subtitleOpacity}>
+				<p class="subtitle intro-fade">Scroll to power on</p>
+				<div class="scroll-cue intro-fade" aria-hidden="true">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<polyline points="6 9 12 15 18 9" />
+					</svg>
+				</div>
+			</div>
+
+			<!-- HUD frame: corner brackets + live readouts (fades before the zoom) -->
+			<div class="hud intro-fade" style:opacity={hudOpacity} aria-hidden="true">
+				<span class="bracket tl"></span>
+				<span class="bracket tr"></span>
+				<span class="bracket bl"></span>
+				<span class="bracket br"></span>
+				<span class="readout r-tl">PALA.SYS — V2</span>
+				<span class="readout r-tr">PWR {power.toString().padStart(3, '0')}%</span>
+				<span class="readout r-bl">MODEL AGB-001</span>
+				<span class="readout r-br">DRAG TO INSPECT</span>
 			</div>
 		</div>
 	</div>
@@ -187,37 +211,57 @@
 		}
 	}
 
-	/* Text sits on top of the canvas, centered at the bottom */
+	/* Text sits on top of the canvas: headline bottom-left, cue bottom-center */
 	.overlay {
 		position: absolute;
 		inset: 0;
 		z-index: 2;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: flex-end;
-		padding-bottom: 4.5rem;
 		pointer-events: none;
 	}
 
-	.title {
-		font-size: clamp(3rem, 8vw, 5rem);
-		font-weight: 800;
-		letter-spacing: -0.02em;
-		color: #938160;
+	.headline-block {
+		position: absolute;
+		left: clamp(1.5rem, 6vw, 6rem);
+		bottom: clamp(6rem, 14vh, 9rem);
+		max-width: 34rem;
 		transition: opacity 0.1s linear;
 	}
 
-	/* ---- Page-load intro ----
-	   Letters rise in one-by-one; subtitle + cue fade up after.
-	   `backwards` fill keeps elements hidden until their delay elapses. */
-	.title-letter {
-		display: inline-block;
-		animation: letter-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-		animation-delay: calc(0.25s + var(--stagger, 0ms));
+	.eyebrow {
+		font-family: var(--font-pixel);
+		font-size: 0.8rem;
+		color: #938160;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		margin-bottom: 1rem;
 	}
 
-	@keyframes letter-rise {
+	.title {
+		font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		line-height: 1.05;
+		color: #e8e4da;
+	}
+
+	.roles {
+		margin-top: 1.25rem;
+		font-size: 1rem;
+		line-height: 1.6;
+		color: #9ab0b0;
+		max-width: 26rem;
+	}
+
+	/* ---- Page-load intro ----
+	   Words rise in one-by-one; eyebrow, roles + cue fade up after.
+	   `backwards` fill keeps elements hidden until their delay elapses. */
+	.title-word {
+		display: inline-block;
+		animation: word-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+		animation-delay: calc(0.35s + var(--stagger, 0ms));
+	}
+
+	@keyframes word-rise {
 		from {
 			opacity: 0;
 			transform: translateY(0.6em);
@@ -226,6 +270,53 @@
 			opacity: 1;
 			transform: translateY(0);
 		}
+	}
+
+	.cue-block {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 2.5rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		transition: opacity 0.1s linear;
+	}
+
+	/* ---- HUD frame ---- */
+	.hud {
+		position: absolute;
+		inset: clamp(4.5rem, 8vh, 6rem) clamp(1.25rem, 4vw, 3rem) clamp(1.25rem, 6vh, 3rem);
+		transition: opacity 0.1s linear;
+	}
+
+	.bracket {
+		position: absolute;
+		width: 22px;
+		height: 22px;
+		border: 0 solid rgba(179, 160, 124, 0.5);
+	}
+
+	.bracket.tl { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+	.bracket.tr { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+	.bracket.bl { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+	.bracket.br { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+
+	.readout {
+		position: absolute;
+		font-family: var(--font-pixel);
+		font-size: 0.6rem;
+		letter-spacing: 0.1em;
+		color: rgba(154, 176, 176, 0.75);
+	}
+
+	.r-tl { top: 4px; left: 2rem; }
+	.r-tr { top: 4px; right: 2rem; color: rgba(179, 160, 124, 0.9); }
+	.r-bl { bottom: 4px; left: 2rem; }
+	.r-br { bottom: 4px; right: 2rem; }
+
+	@media (max-width: 720px) {
+		.readout { display: none; }
 	}
 
 	.intro-fade {
@@ -247,20 +338,18 @@
 	}
 
 	.subtitle {
-		margin-top: 1rem;
-		font-size: 1.1rem;
-		letter-spacing: 0.15em;
+		font-family: var(--font-pixel);
+		font-size: 0.75rem;
+		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: #cccccc;
-		transition: opacity 0.1s linear;
+		color: #9ab0b0;
 	}
 
 	/* Bouncing chevron below the subtitle */
 	.scroll-cue {
-		margin-top: 1.25rem;
+		margin-top: 0.75rem;
 		color: #938160;
 		animation: bounce 2s ease-in-out infinite;
-		transition: opacity 0.1s linear;
 	}
 
 	@keyframes bounce {
@@ -276,7 +365,7 @@
 	@media (prefers-reduced-motion: reduce) {
 		.scroll-cue,
 		.loader-dot,
-		.title-letter,
+		.title-word,
 		.intro-fade {
 			animation: none;
 		}

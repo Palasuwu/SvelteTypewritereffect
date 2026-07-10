@@ -47,7 +47,7 @@
 	<div class="section-inner">
 		<div class="columns">
 			<div class="intro" use:reveal>
-				<p class="eyebrow">About</p>
+				<p class="eyebrow">02 / About</p>
 				<h2 id="about-heading" class="section-title">Design &amp; Development</h2>
 				<p class="bio">
 					I'm Pala — a developer who cares about the details. I build interactive
@@ -97,9 +97,9 @@
 	}
 
 	.eyebrow {
+		font-family: var(--font-pixel);
 		font-size: 0.8rem;
-		font-weight: 600;
-		letter-spacing: 0.25em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: #938160;
 		margin-bottom: 0.75rem;

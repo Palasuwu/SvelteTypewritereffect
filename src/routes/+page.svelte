@@ -40,7 +40,8 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<div class="min-h-screen bg-abyss">
+<!-- Transparent wrapper — the body's fixed gradient provides the backdrop -->
+<div class="min-h-screen">
 	<Navbar />
 
 	<!-- 3D Hero with scroll-driven GBA model; skills ticker floats behind it -->
@@ -48,7 +49,8 @@
 
 	<!-- First reveal -->
 	<ScrollReveal
-		text="We build digital experiences that push the boundaries of what's possible on the web. Every pixel, every interaction, every moment is crafted with purpose."
+		label="00 / Manifesto"
+		text="Digital experiences that push what's possible on the web. Every pixel, every interaction, every frame — crafted with purpose."
 		trackHeight="350vh"
 	/>
 
@@ -57,7 +59,8 @@
 
 	<!-- Second reveal -->
 	<ScrollReveal
-		text="Performance is not an afterthought. It is the foundation upon which great user experiences are built."
+		label="Intermission"
+		text="Performance is not an afterthought. It is the foundation great experiences are built on."
 		trackHeight="350vh"
 	/>
 

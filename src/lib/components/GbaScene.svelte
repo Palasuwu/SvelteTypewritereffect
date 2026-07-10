@@ -27,7 +27,7 @@
 
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
-	import { GLTF } from '@threlte/extras';
+	import { GLTF, Sparkles, interactivity } from '@threlte/extras';
 	import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 	import * as THREE from 'three';
 	import { onDestroy } from 'svelte';
@@ -44,28 +44,17 @@
 	dracoLoader.setDecoderPath('/draco/');
 	onDestroy(() => dracoLoader.dispose());
 
+	// Pointer events (raycasting) so the model itself is grabbable
+	interactivity();
+
 	// ---- Reduced motion ----
 	const reducedMotion =
 		typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	// ---- Dust particles ----
-	// A loose box of gold dust drifting around the model. Built once,
-	// rotated slowly per-frame, faded out during the final zoom.
-	const PARTICLE_COUNT = 160;
-	const particleGeometry = new THREE.BufferGeometry();
-	{
-		const positions = new Float32Array(PARTICLE_COUNT * 3);
-		for (let i = 0; i < PARTICLE_COUNT; i++) {
-			positions[i * 3] = (Math.random() - 0.5) * 10; // x: ±5
-			positions[i * 3 + 1] = (Math.random() - 0.5) * 6; // y: ±3
-			positions[i * 3 + 2] = (Math.random() - 0.5) * 4 - 1; // z: -3 … 1
-		}
-		particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-	}
-	onDestroy(() => particleGeometry.dispose());
-
-	let particleMaterial: THREE.PointsMaterial | undefined = $state();
-	let particleRotY = $state(0);
+	// ---- Smoothed scroll progress ----
+	// The raw prop follows the scrollbar 1:1; the scene follows this eased
+	// copy instead, so fast scrolling reads as weight, not teleporting.
+	let sProgress = 0;
 
 	// ---- GBA screen (canvas texture) ----
 	// Off until the cartridge clicks in (progress 0.68), then the boot
@@ -102,10 +91,56 @@
 	function handleMouseMove(e: MouseEvent) {
 		mouseX = (e.clientX / window.innerWidth) * 2 - 1;
 		mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+
+		if (dragging) {
+			// Accumulate drag rotation from explicit position deltas —
+			// e.movementX is 0 on some browsers/synthesized pointers.
+			// Yaw-dominant: horizontal spin is the hero move, pitch is a nudge.
+			dragRY += (e.clientX - lastPointerX) * 0.006;
+			dragRX += (e.clientY - lastPointerY) * 0.003;
+			lastPointerX = e.clientX;
+			lastPointerY = e.clientY;
+			// Keep it inspectable, not flippable into the void
+			dragRY = Math.max(-2.4, Math.min(2.4, dragRY));
+			dragRX = Math.max(-0.4, Math.min(0.4, dragRX));
+		}
 	}
 
+	// ---- Drag to inspect ----
+	// Grabbing the model adds rotation offsets on top of the scroll pose;
+	// releasing springs them back to zero (slight overshoot), so the
+	// scripted scroll animation always wins in the end.
+	let dragging = $state(false);
+	let dragRX = $state(0);
+	let dragRY = $state(0);
+	let velRX = 0;
+	let velRY = 0;
+	let lastPointerX = 0;
+	let lastPointerY = 0;
+
+	function startDrag(e: { stopPropagation: () => void; nativeEvent?: PointerEvent } & Partial<PointerEvent>) {
+		e.stopPropagation();
+		dragging = true;
+		velRX = 0;
+		velRY = 0;
+		// Threlte interactivity events expose the DOM event's coordinates
+		lastPointerX = e.clientX ?? 0;
+		lastPointerY = e.clientY ?? 0;
+		document.body.style.cursor = 'grabbing';
+	}
+
+	function endDrag() {
+		if (!dragging) return;
+		dragging = false;
+		document.body.style.cursor = 'auto';
+	}
+
+	onDestroy(() => {
+		if (typeof document !== 'undefined') document.body.style.cursor = 'auto';
+	});
+
 	// ---- Interpolated values driven by scroll ----
-	let posX = $state(-2.5);
+	let posX = $state(2.2);
 	let posY = $state(0);
 	let scale = $state(4);
 	let rotX = $state(0);
@@ -147,12 +182,33 @@
 			floatY = Math.sin(elapsed * 1.2) * 0.08;
 			floatRotZ = Math.sin(elapsed * 0.8) * 0.02;
 
-			// Dust drifts in a slow orbit
-			particleRotY += delta * 0.02;
-
 			// Ease the parallax toward the mouse position (smooth follow)
 			parallaxX += (mouseY * 0.06 - parallaxX) * Math.min(1, delta * 4);
 			parallaxY += (mouseX * 0.08 - parallaxY) * Math.min(1, delta * 4);
+		}
+
+		// Ease the scene toward the real scroll position (weight, not teleport).
+		// Reduced motion tracks the scrollbar exactly — no trailing animation.
+		sProgress = reducedMotion
+			? progress
+			: sProgress + (progress - sProgress) * Math.min(1, delta * 6);
+
+		// Spring the drag offsets back to zero once released. A stiff,
+		// lightly-damped spring gives a small overshoot — feels physical.
+		if (!dragging && (dragRX !== 0 || dragRY !== 0)) {
+			if (reducedMotion) {
+				dragRX = 0;
+				dragRY = 0;
+			} else {
+				const dt = Math.min(delta, 1 / 30);
+				velRX += (-90 * dragRX - 12 * velRX) * dt;
+				velRY += (-90 * dragRY - 12 * velRY) * dt;
+				dragRX += velRX * dt;
+				dragRY += velRY * dt;
+				// Settle fully once the motion is imperceptible
+				if (Math.abs(dragRX) < 0.001 && Math.abs(velRX) < 0.001) dragRX = 0;
+				if (Math.abs(dragRY) < 0.001 && Math.abs(velRY) < 0.001) dragRY = 0;
+			}
 		}
 
 		// ---- Screen state ----
@@ -161,10 +217,10 @@
 		// Wall-clock timed so the sequence stays true even if rendering lags.
 		const now = performance.now() / 1000;
 		crtMaterial.uniforms.uTime.value = now;
-		if (progress >= 0.68 && bootStart === null) {
+		if (sProgress >= 0.74 && bootStart === null) {
 			bootStart = now;
 			bootDone = false;
-		} else if (progress < 0.6 && bootStart !== null) {
+		} else if (sProgress < 0.66 && bootStart !== null) {
 			bootStart = null;
 			screenIsOff = false; // force one redraw of the off state
 		}
@@ -181,40 +237,41 @@
 			screenIsOff = true;
 		}
 
-		// Dust fades away during the final zoom so it never reads as noise
-		if (particleMaterial) {
-			particleMaterial.opacity = lerp([[0, 0.5], [0.7, 0.5], [0.95, 0]], progress);
-		}
-
-		// ---- GBA scroll keyframes ----
-		posX = lerp([[0, -2.5], [0.25, 0], [1, 0]], progress);
-		scale = lerp([[0, 4], [0.3, 10], [0.65, 10], [1, 24]], progress);
-		rotY = lerp([[0, -0.5], [0.25, 0.3], [0.4, 1.2], [0.55, 2.8], [0.7, Math.PI * 2], [1, Math.PI * 2]], progress);
-		rotX = lerp([[0, 0.1], [0.25, 0], [0.4, -0.15], [0.55, 0.05], [0.7, 0], [1, 0]], progress);
-		posY = lerp([[0, -0.5], [0.25, 0], [0.4, 0.2], [0.7, 0], [1, 0.3]], progress);
+		// ---- GBA scroll keyframes (driven by the smoothed progress) ----
+		// One deliberate sequence, no wandering:
+		//   0.00–0.30  glide from the right to center stage, growing
+		//   0.30–0.62  a single clean half-turn to face away (slot visible)
+		//   0.50–0.74  cartridge enters close from the lower right, seats
+		//   0.76–0.88  turn back around to face front (screen boots)
+		//   0.88–1.00  full glamour zoom
+		posX = lerp([[0, 2.2], [0.3, 0], [1, 0]], sProgress);
+		scale = lerp([[0, 6.5], [0.3, 13], [0.85, 13], [1, 26]], sProgress);
+		rotY = lerp([[0, 0.35], [0.3, 0], [0.38, 0], [0.62, Math.PI], [0.76, Math.PI], [0.88, Math.PI * 2], [1, Math.PI * 2]], sProgress);
+		rotX = lerp([[0, 0.08], [0.3, 0], [0.55, -0.08], [0.74, 0], [1, 0]], sProgress);
+		posY = lerp([[0, -0.2], [0.3, 0], [0.55, 0.12], [0.74, 0], [1, 0.3]], sProgress);
 
 		// ---- Cartridge keyframes (GBA-local units) ----
-		// Hidden until the GBA starts showing its back, then: fly in from the
-		// right while tumbling → hover above the slot → slide down into it.
-		cartVisible = progress > 0.36;
+		// Enters near the console (no distant speck): a short tumble up from
+		// the lower right → hover above the slot → slide down into it.
+		cartVisible = sProgress > 0.48;
 
-		// Horizontal approach: far right → centered over the slot
-		cartX = lerp([[0.38, 0.55], [0.56, 0], [1, 0]], progress);
+		cartX = lerp([[0.5, 0.22], [0.64, 0], [1, 0]], sProgress);
 
-		// Vertical: high above → hover at 0.16 → seated in the slot (0.047)
-		cartY = lerp([[0.38, 0.3], [0.56, 0.16], [0.62, 0.16], [0.68, 0.047], [1, 0.047]], progress);
+		// Vertical: below the slot line → hover at 0.16 → seated (0.047)
+		cartY = lerp([[0.5, -0.06], [0.6, 0.16], [0.66, 0.16], [0.74, 0.047], [1, 0.047]], sProgress);
 
 		// Sits against the back shell — deep enough that it can't be seen
 		// through the (transmissive) screen glass from the front
 		cartZ = -0.013;
 
 		// Tumble that settles as it reaches the hover point
-		cartRotX = lerp([[0.38, -1.2], [0.56, 0], [1, 0]], progress);
-		cartRotZ = lerp([[0.38, 0.6], [0.56, 0], [1, 0]], progress);
+		cartRotX = lerp([[0.5, -0.9], [0.64, 0], [1, 0]], sProgress);
+		cartRotZ = lerp([[0.5, 0.5], [0.64, 0], [1, 0]], sProgress);
 	});
 </script>
 
-<svelte:window onmousemove={handleMouseMove} />
+<!-- Drag ends anywhere on the page, even if the pointer leaves the model -->
+<svelte:window onmousemove={handleMouseMove} onpointerup={endDrag} onpointercancel={endDrag} />
 
 <!--
 	CAMERA
@@ -261,21 +318,19 @@
 />
 
 <!--
-	DUST PARTICLES
-	==============
-	Slow-orbiting gold dust for atmosphere. Sits behind the model group.
+	DUST
+	====
+	Soft glowing gold motes drifting through the scene (Threlte Sparkles).
 -->
-<T.Points geometry={particleGeometry} rotation.y={particleRotY}>
-	<T.PointsMaterial
-		bind:ref={particleMaterial}
-		color="#b3a07c"
-		size={0.025}
-		sizeAttenuation
-		transparent
-		opacity={0.5}
-		depthWrite={false}
-	/>
-</T.Points>
+<Sparkles
+	count={110}
+	scale={[10, 5.5, 4]}
+	size={2.4}
+	speed={0.35}
+	opacity={0.5}
+	color="#b3a07c"
+	position.z={-0.5}
+/>
 
 <!--
 	MODEL GROUP
@@ -284,47 +339,60 @@
 	rotation and the floating bob. Cartridge offsets are GBA-local units
 	multiplied by the current scale.
 -->
+<!-- The GLB's origin is at its BASE — rotating there swings the body like a
+     pendulum. The outer group is raised to the model's center height and the
+     children are lowered by the same amount, so all rotations (scroll, drag,
+     parallax) pivot around the model's geometric center. -->
 <T.Group
 	position.x={posX}
-	position.y={posY + floatY}
-	rotation.x={rotX + parallaxX}
-	rotation.y={rotY + parallaxY}
+	position.y={posY + floatY + 0.041 * scale}
+	rotation.x={rotX + parallaxX + dragRX}
+	rotation.y={rotY + parallaxY + dragRY}
 	rotation.z={floatRotZ}
+	onpointerdown={startDrag}
+	onpointerenter={() => {
+		if (!dragging) document.body.style.cursor = 'grab';
+	}}
+	onpointerleave={() => {
+		if (!dragging) document.body.style.cursor = 'auto';
+	}}
 >
-	<GLTF
-		url="/models/gba/gba.glb"
-		{dracoLoader}
-		scale={scale}
-		onload={() => onready?.()}
-	/>
+	<T.Group position.y={-0.041 * scale}>
+		<GLTF
+			url="/models/gba/gba.glb"
+			{dracoLoader}
+			scale={scale}
+			onload={() => onready?.()}
+		/>
 
-	<!-- Always mounted (so the GLB preloads); shown once the story needs it -->
-	<GLTF
-		url="/models/gba/gba_cart.glb"
-		{dracoLoader}
-		visible={cartVisible}
-		scale={scale}
-		position.x={cartX * scale}
-		position.y={cartY * scale}
-		position.z={cartZ * scale}
-		rotation.x={cartRotX}
-		rotation.z={cartRotZ}
-	/>
+		<!-- Always mounted (so the GLB preloads); shown once the story needs it -->
+		<GLTF
+			url="/models/gba/gba_cart.glb"
+			{dracoLoader}
+			visible={cartVisible}
+			scale={scale}
+			position.x={cartX * scale}
+			position.y={cartY * scale}
+			position.z={cartZ * scale}
+			rotation.x={cartRotX}
+			rotation.z={cartRotZ}
+		/>
 
-	<!-- Lens: a dark glossy pane inside the screen aperture. The GLB is a
-	     hollow shell — without this you see straight into the empty body. -->
-	<T.Mesh scale={scale} position.y={0.04 * scale} position.z={0.008 * scale}>
-		<T.PlaneGeometry args={[0.08, 0.06]} />
-		<T.MeshStandardMaterial color="#050807" roughness={0.25} metalness={0.2} />
-	</T.Mesh>
+		<!-- Lens: a dark glossy pane inside the screen aperture. The GLB is a
+		     hollow shell — without this you see straight into the empty body. -->
+		<T.Mesh scale={scale} position.y={0.04 * scale} position.z={0.008 * scale}>
+			<T.PlaneGeometry args={[0.08, 0.06]} />
+			<T.MeshStandardMaterial color="#050807" roughness={0.25} metalness={0.2} />
+		</T.Mesh>
 
-	<!-- Screen plane — canvas texture through the CRT shader -->
-	<T.Mesh
-		material={crtMaterial}
-		scale={scale}
-		position.y={0.04 * scale}
-		position.z={0.0105 * scale}
-	>
-		<T.PlaneGeometry args={[0.066, 0.044]} />
-	</T.Mesh>
+		<!-- Screen plane — canvas texture through the CRT shader -->
+		<T.Mesh
+			material={crtMaterial}
+			scale={scale}
+			position.y={0.04 * scale}
+			position.z={0.0105 * scale}
+		>
+			<T.PlaneGeometry args={[0.066, 0.044]} />
+		</T.Mesh>
+	</T.Group>
 </T.Group>

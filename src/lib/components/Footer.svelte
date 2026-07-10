@@ -89,10 +89,10 @@
 
 	/* ---- Brand ---- */
 	.brand-name {
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-family: var(--font-pixel);
+		font-size: 1.15rem;
 		color: #938160;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.04em;
 	}
 
 	.brand-tagline {

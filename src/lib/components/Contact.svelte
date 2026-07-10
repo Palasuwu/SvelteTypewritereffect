@@ -26,7 +26,7 @@
 
 <section id="contact" class="contact" aria-labelledby="contact-heading">
 	<div class="section-inner">
-		<p class="eyebrow">Contact</p>
+		<p class="eyebrow">03 / Contact</p>
 		<h2 id="contact-heading" class="section-title">Let's build something<br />worth scrolling for.</h2>
 		<p class="lede">
 			Have a project in mind, or just want to talk shop? My inbox is open.
@@ -74,9 +74,9 @@
 	}
 
 	.eyebrow {
+		font-family: var(--font-pixel);
 		font-size: 0.8rem;
-		font-weight: 600;
-		letter-spacing: 0.25em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: #938160;
 		margin-bottom: 0.75rem;

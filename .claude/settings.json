@@ -1,0 +1,12 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(npm run check)",
+			"Bash(npm run build)",
+			"Bash(curl -s http://localhost*)",
+			"Bash(curl -s -o /dev/null *)",
+			"Bash(npx --yes @gltf-transform/cli inspect *)",
+			"Bash(python3 /Users/pala/.claude/plugins/cache/ui-ux-pro-max-skill/*)"
+		]
+	}
+}
